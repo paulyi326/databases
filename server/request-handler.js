@@ -6,12 +6,23 @@
  * *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html. */
 var url = require('url');
 var _ = require('underscore');
+var mysql = require('mysql');
+var sqlHelpers = require('./sqlHelpers.js');
 var storage = [];
+var messageId = 0;
 
 
 
 module.exports = {
   handleRequest: function(request, response) {
+    var connection = mysql.createConnection({
+      host : 'localhost',
+      user : 'root',
+      password : 'awesome',
+      database: 'chat'
+    });
+
+    connection.connect();
 
     var statusCode = 404;
     //  Without this line, this server wouldn't work. See the note
@@ -51,12 +62,25 @@ module.exports = {
         });
         request.on('end', function () {
           var post = JSON.parse(body);
-          post.id = storage.length;
+          post.id = messageId;
+          messageId++;
           post.createdAt = new Date();
           if (query['roomname'] !== undefined) {
             post.roomname = query['roomname']
           }
-          storage[post.id] = post;
+          // insert into tables
+          var roomObj = {
+            roomId: 2,
+            roomName: post.roomname
+          };
+          connection.query('INSERT INTO rooms SET ?', roomObj, function(err, result) {
+            if (err) {
+              console.log(err);
+            } else {
+              console.log(result);
+            }
+          });
+          connection.end();
         });
       }
     }
