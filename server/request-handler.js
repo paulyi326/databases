@@ -8,9 +8,8 @@ var url = require('url');
 var _ = require('underscore');
 var mysql = require('mysql');
 var sqlHelpers = require('./sqlHelpers.js');
-var storage = [];
 var messageId = 0;
-
+var storage = [];
 
 
 module.exports = {
@@ -29,18 +28,18 @@ module.exports = {
     //  * below about CORS.
     var headers = module.exports.defaultCorsHeaders;
     headers['Content-Type'] = "text/plain";
-    var responseText='';
+    var responseText = '';
     var req=url.parse(request.url, true);
 
     //only allow correct path
     if (req.pathname.slice(0, 8)==='/classes') {
 
-      var parameters=req.pathname.slice(1).split('/');
+      var parameters = req.pathname.slice(1).split('/');
 
-      var query=req.query;
+      var query = req.query;
 
       if (parameters[1]==='room') {
-        query['roomname']=parameters[2];
+        query['roomname'] = parameters[2];
       }
 
       //OPTIONS
@@ -66,21 +65,28 @@ module.exports = {
           messageId++;
           post.createdAt = new Date();
           if (query['roomname'] !== undefined) {
-            post.roomname = query['roomname']
+            post.roomname = query['roomname'];
           }
+          module.exports.insert('rooms', 'roomId', post.roomname, connection);
+
           // insert into tables
-          var roomObj = {
-            roomId: 2,
-            roomName: post.roomname
-          };
-          connection.query('INSERT INTO rooms SET ?', roomObj, function(err, result) {
-            if (err) {
-              console.log(err);
-            } else {
-              console.log(result);
-            }
-          });
-          connection.end();
+          // var messagesObj = {
+          //   messageId: post.id,
+          //   messageText: post.text,
+          //   roomId: 'lobby',
+          //   userId: post.username
+          // };
+          // console.log(messagesObj);
+          // // inserting into rooms table
+          // connection.query('INSERT INTO messages SET ?', messagesObj, function(err, result) {
+          //   if (err) {
+          //     console.log(err);
+          //   } else {
+          //     console.log(result);
+          //   }
+          // });
+
+          // connection.end();
         });
       }
     }
@@ -131,6 +137,33 @@ module.exports = {
     }
 
     return resultsObj;
+  },
+
+  insert: function(tableName, column, property, connection) {
+    var obj = {
+      roomId: property
+    };
+    connection.query('SELECT * FROM ' + tableName + ' WHERE ' + column + ' = ' + '\'' + property + '\'', function(err, rows, fields){
+      console.log(rows);
+      if (rows.length === 0){
+        connection.query('INSERT INTO rooms SET ?', obj, function(err, result){
+          if (err){
+            console.log('This error: ' + err);
+          } else {
+            console.log(result);
+          }
+          connection.end();
+        });
+      }
+    });
+  },
+
+  roomExists: function(room) {
+
+  },
+
+  userExists: function(user) {
+
   },
 
   /* These headers will allow Cross-Origin Resource Sharing (CORS).

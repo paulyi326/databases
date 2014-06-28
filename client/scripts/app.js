@@ -87,6 +87,7 @@ var app = {
       contentType: 'application/json',
       success: function(data){
         console.log('chatterbox: Message sent');
+        console.log(message);
       },
       error: function(data){
         console.error('chatterbox: Failed to send message');

@@ -1,33 +1,28 @@
+drop database chat;
 CREATE DATABASE chat;
 
 USE chat;
 CREATE TABLE rooms (
-  roomId int,
-  roomName varchar(24),
+  roomId varChar(24),
+  -- messageId int,
   PRIMARY KEY (roomId)
+  -- FOREIGN KEY (messageId) REFERENCES messages(messageId)
 );
 
 CREATE TABLE users (
-  userId int,
-  username varchar(24),
+  userId varchar(24),
+  -- messageId int,
   PRIMARY KEY (userId)
+  -- FOREIGN KEY (messageId) REFERENCES messages(messageId)
 );
 
 CREATE TABLE messages (
   /* Describe your table here.*/
   messageId int,
   messageText text,
-  roomId int,
-  userId int,
+  roomId varchar(24),
+  userId varchar(24),
   PRIMARY KEY (messageId),
-  FOREIGN KEY (roomId) REFERENCES rooms(roomId),
-  FOREIGN KEY (userId) REFERENCES users(userId)
-);
-
-
-CREATE TABLE roomUserJoin (
-  roomId int,
-  userId int,
   FOREIGN KEY (roomId) REFERENCES rooms(roomId),
   FOREIGN KEY (userId) REFERENCES users(userId)
 );
