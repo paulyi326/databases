@@ -1,4 +1,4 @@
-drop database chat;
+-- drop database chat;
 CREATE DATABASE chat;
 
 USE chat;
