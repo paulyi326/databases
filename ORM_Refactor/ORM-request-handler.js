@@ -1,8 +1,3 @@
-
-/* You already know how to create an http server from the previous
- * assignment; you can re-use most of that code here. */
-
-
 /* You should implement your request handler function in this file.
  * And hey! This is already getting passed to http.createServer()
  * in basic-server.js. But it won't work as is.
@@ -12,19 +7,32 @@
 var url = require('url');
 var _ = require('underscore');
 var mysql = require('mysql');
+var Sequelize = require('sequelize');
 var messageId = 0;
-var storage = [];
+var sequelize = new Sequelize("chat", "root");
+/* TODO this constructor takes the database name, username, then password.
+ * Modify the arguments if you need to */
+
+/* first define the data structure by giving property names and datatypes
+ * See http://sequelizejs.com for other datatypes you can use besides STRING. */
+var Users = sequelize.define('Users', {
+  userId: Sequelize.STRING
+});
+
+var Messages = sequelize.define('Messages', {
+  messageId: Sequelize.STRING,
+  messageText: Sequelize.STRING,
+  roomId: Sequelize.STRING,
+  userId: Sequelize.STRING
+});
+
+var Rooms = sequelize.define('Rooms', {
+  roomId: Sequelize.STRING
+});
 
 
 module.exports = {
   handleRequest: function(request, response) {
-    var connection = mysql.createConnection({
-      host : 'localhost',
-      user : 'root',
-      database: 'chat'
-    });
-
-    connection.connect();
 
     var statusCode = 404;
     //  Without this line, this server wouldn't work. See the note
@@ -56,8 +64,21 @@ module.exports = {
 
         headers['Content-Type'] = "application/json";
         statusCode=200;
+        console.log(Messages);
+        Messages.sync().success(function() {
+          Messages.findAll().success(function(messageArray) {
+            // This function is called back with an array of matches.
+            var resultsObj = {results: []};
+            for (var i = 0; i < messageArray.length; i++) {
+              resultsObj.results[i] = messageArray[i].dataValues;
+            }
+            var responseText = JSON.stringify(resultsObj);
+            response.writeHead(200, module.exports.defaultCorsHeaders);
+            response.end(responseText);
+          });
+        });
         // console.log(query);
-        module.exports.returnResults(query, connection, response);
+        // module.exports.returnResults(query, connection, response);
         // connection.end();
       //POST
       } else if (request.method === 'POST') {
@@ -91,44 +112,7 @@ module.exports = {
         });
       }
     }
-
-    // // console.log(response);
-    // /* the 'request' argument comes from nodes http module. It includes info about the
-    // request - such as what URL the browser is requesting. */
-
-    // /* Documentation for both request and response can be found at
-    //  * http://nodemanual.org/0.8.14/nodejs_ref_guide/http.html */
-
-
-    // /* .writeHead() tells our server what HTTP status code to send back */
-    // response.writeHead(statusCode, headers);
-
-    // /* Make sure to always call response.end() - Node will not send
-    //  * anything back to the client until you do. The string you pass to
-    //  * response.end() will be the body of the response - i.e. what shows
-    //  * up in the browser.*/
-    // response.end(responseText);
   },
-
-  returnResults: function(queryObj, connection, response) {
-    var resultsObj = {};
-    var limit = queryObj.limit || 100;
-    var order = queryObj.order;
-    connection.query('SELECT * FROM messages', function(err, rows, fields){
-      console.log(rows);
-      resultsObj.results = rows;
-      var responseText = JSON.stringify(resultsObj);
-      response.writeHead(200, module.exports.defaultCorsHeaders);
-      response.end(responseText);
-      connection.end();
-    });
-  },
-
-  // newMessageId: function(connection, messageId) {
-  //   connection.query('SELECT max(messageId) from messages', function(err, rows, fields){
-  //     messageId = rows[0]['max(messageId)'] + 1;
-  //   });
-  // },
 
   roomUserInsert: function(tableName, column, property, connection) {
     var obj = {};

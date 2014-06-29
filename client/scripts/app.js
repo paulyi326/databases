@@ -106,6 +106,8 @@ var app = {
         order: '-createdAt'
       },
       success: function(data){
+        // data = JSON.parse(data);
+        console.log(data);
         callback(data);
       },
       error: function(xhr,status){
@@ -119,12 +121,12 @@ var app = {
   },
 
   addMessage: function(message) {
-    var newName = app._escape(message.username);
-    var newText = app._escape(message.text);
+    var newName = app._escape(message.userId);
+    var newText = app._escape(message.messageText);
     if (this.friends[newName]) {
       newText = '<b>' + newText + '</b>';
     }
-    var createdAt = app._escape(message.createdAt);
+    // var createdAt = app._escape(message.createdAt);
     var newMessage  = $('<li><a href=#>'
     + newName + '</a>: ' + newText + '</li>');
     newMessage.addClass('username');
@@ -167,9 +169,8 @@ var app = {
 
     app.fetch(function(messages) {
       messages = messages.results;
-
       messages = _.filter(messages,function(message){
-        return message.roomname === app.currentRoom;
+        return message.roomId === app.currentRoom;
       });
 
       app.clearMessages();

@@ -45,14 +45,16 @@ module.exports = {
       if(request.method === "OPTIONS") {
         // handle options request
         statusCode=200;
+        response.writeHead(statusCode, headers);
+        response.end(responseText);
       //GET
       } else if (request.method === 'GET') {
 
         headers['Content-Type'] = "application/json";
         statusCode=200;
         // console.log(query);
-        responseText=JSON.stringify(module.exports.returnResults(query));
-        connection.end();
+        module.exports.returnResults(query, connection, response);
+        // connection.end();
       //POST
       } else if (request.method === 'POST') {
         statusCode=201;
@@ -80,7 +82,8 @@ module.exports = {
           };
           module.exports.messageInsert(messageObj, connection);
 
-          // connection.end();
+          response.writeHead(statusCode, headers);
+          response.end(responseText);
         });
       }
     }
@@ -94,17 +97,27 @@ module.exports = {
 
 
     // /* .writeHead() tells our server what HTTP status code to send back */
-    response.writeHead(statusCode, headers);
+    // response.writeHead(statusCode, headers);
 
     // /* Make sure to always call response.end() - Node will not send
     //  * anything back to the client until you do. The string you pass to
     //  * response.end() will be the body of the response - i.e. what shows
     //  * up in the browser.*/
-    response.end(responseText);
+    // response.end(responseText);
   },
 
-  returnResults: function(queryObj) {
-
+  returnResults: function(queryObj, connection, response) {
+    var resultsObj = {};
+    var limit = queryObj.limit || 100;
+    var order = queryObj.order;
+    connection.query('SELECT * FROM messages', function(err, rows, fields){
+      console.log(rows);
+      resultsObj.results = rows;
+      var responseText = JSON.stringify(resultsObj);
+      response.writeHead(200, module.exports.defaultCorsHeaders);
+      response.end(responseText);
+      connection.end();
+    });
   },
 
   // newMessageId: function(connection, messageId) {
@@ -117,13 +130,13 @@ module.exports = {
     var obj = {};
     obj[column] = property;
     connection.query('SELECT * FROM ' + tableName + ' WHERE ' + column + ' = ' + '\'' + property + '\'', function(err, rows, fields){
-      console.log(rows);
+      // console.log(rows);
       if (rows.length === 0){
         connection.query('INSERT INTO ' + tableName + ' SET ?', obj, function(err, result){
           if (err){
             console.log('This error: ' + err);
           } else {
-            console.log(result);
+            // console.log(result);
           }
           // connection.end();
         });
@@ -138,7 +151,7 @@ module.exports = {
         if (err){
           console.log('This error: ' + err);
         } else {
-          console.log(result);
+          // console.log(result);
         }
         connection.end();
       });
