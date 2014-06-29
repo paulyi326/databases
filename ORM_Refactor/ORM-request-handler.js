@@ -8,7 +8,6 @@ var url = require('url');
 var _ = require('underscore');
 var mysql = require('mysql');
 var Sequelize = require('sequelize');
-var messageId = 0;
 var sequelize = new Sequelize("chat", "root");
 /* TODO this constructor takes the database name, username, then password.
  * Modify the arguments if you need to */
@@ -20,7 +19,6 @@ var Users = sequelize.define('Users', {
 });
 
 var Messages = sequelize.define('Messages', {
-  messageId: Sequelize.STRING,
   messageText: Sequelize.STRING,
   roomId: Sequelize.STRING,
   userId: Sequelize.STRING
@@ -64,7 +62,7 @@ module.exports = {
 
         headers['Content-Type'] = "application/json";
         statusCode=200;
-        console.log(Messages);
+
         Messages.sync().success(function() {
           Messages.findAll().success(function(messageArray) {
             // This function is called back with an array of matches.
@@ -89,61 +87,54 @@ module.exports = {
         });
         request.on('end', function () {
           var post = JSON.parse(body);
-          post.id = messageId;
-          messageId++;
           post.createdAt = new Date();
           if (query['roomname'] !== undefined) {
             post.roomname = query['roomname'];
           }
           // var messageId;
           // module.exports.newMessageId(connection, messageId);
-          module.exports.roomUserInsert('rooms', 'roomId', post.roomname, connection);
-          module.exports.roomUserInsert('users', 'userId', post.username, connection);
+          // module.exports.roomUserInsert('rooms', 'roomId', post.roomname, connection);
+          Rooms.sync().success(function(){
+            Rooms.findAll({ where: {roomId: post.roomname} }).success(function(rooms) {
+                  // This function is called back with an array of matches.
+              console.log(rooms);
+              for (var i = 0; i < rooms.length; i++) {
+                console.log(rooms[i].roomname + " exists");
+              }
+              Rooms.build({roomId: post.roomname}).save().success(function(){
+                console.log('YAY');
+              });
+
+            });
+          });
+          Users.sync().success(function(){
+            Users.findAll({ where: {userId: post.username} }).success(function(users) {
+                  // This function is called back with an array of matches.
+              for (var i = 0; i < users.length; i++) {
+                console.log(users[i].username + " exists");
+              }
+              Users.build({userId: post.username}).save().success(function(){
+                console.log('YAY');
+              });
+
+            });
+          });
           var messageObj = {
-            messageId: 1,
             messageText: post.text,
             roomId: post.roomname,
             userId: post.username
           };
-          module.exports.messageInsert(messageObj, connection);
+          Messages.build(messageObj).save().success(function(){
+            console.log('YAY');
+          });
+          // module.exports.roomMessageInsert('users', 'userId', post.username, connection);
+          // module.exports.messageInsert(messageObj, connection);
 
           response.writeHead(statusCode, headers);
           response.end(responseText);
         });
       }
     }
-  },
-
-  roomUserInsert: function(tableName, column, property, connection) {
-    var obj = {};
-    obj[column] = property;
-    connection.query('SELECT * FROM ' + tableName + ' WHERE ' + column + ' = ' + '\'' + property + '\'', function(err, rows, fields){
-      // console.log(rows);
-      if (rows.length === 0){
-        connection.query('INSERT INTO ' + tableName + ' SET ?', obj, function(err, result){
-          if (err){
-            console.log('This error: ' + err);
-          } else {
-            // console.log(result);
-          }
-          // connection.end();
-        });
-      }
-    });
-  },
-  messageInsert: function(messageObj, connection) {
-    connection.query('SELECT max(messageId) from messages', function(err, rows, fields){
-      messageId = rows[0]['max(messageId)'] + 1;
-      messageObj.messageId = messageId;
-      connection.query('INSERT INTO messages SET ?', messageObj, function(err, result){
-        if (err){
-          console.log('This error: ' + err);
-        } else {
-          // console.log(result);
-        }
-        connection.end();
-      });
-    });
   },
 
   /* These headers will allow Cross-Origin Resource Sharing (CORS).
